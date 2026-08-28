@@ -1,0 +1,17 @@
+# ROS 2 / colcon / CMake generated directories
+**/build/
+**/install/
+**/log/
+
+# Python cache
+**/__pycache__/
+*.py[cod]
+
+# FAST-LIO runtime logs
+SLAM/FAST_LIO_SLAM_ros2/Log/*.txt
+
+# Runtime data
+*.bag
+*.db3
+*.mcap
+*.log

@@ -1,0 +1,109 @@
+/**:
+  ros__parameters:
+    map_file_path: "./gazebo_map.pcd"
+
+    common:
+      # gazebo_sensor_plugin.xacro 中的实际话题
+      lid_topic: "/points_raw"
+      imu_topic: "/imu"
+
+      # 雷达与 IMU 都使用 Gazebo 仿真时间，不需要自动估计时间差
+      time_sync_en: false
+      time_offset_lidar_to_imu: 0.0
+
+    preprocess:
+      # 5 表示下面建议增加的 GENERIC_XYZI
+      # 即使暂时不改枚举，5 也会进入 switch 的 default_handler()
+      lidar_type: 5
+
+      # 你的 Gazebo 雷达垂直方向 samples=128
+      # default_handler 实际不使用这个参数，但保持配置语义正确
+      scan_line: 128
+
+      # 插件最小量程是 0.1 m，稍微放大一点可去掉机体附近噪点
+      blind: 0.15
+
+      # 当前点云没有逐点时间字段，因此该参数在 default_handler 中无效
+      timestamp_unit: 1
+
+      # Gazebo 雷达 update_rate=10
+      scan_rate: 10
+
+      # gpu_ray 一帧点云是消息时间戳处的完整快照，不是持续 0.1 s
+      # 的机械旋转扫描；只传播 IMU 状态，不做逐点反向去畸变。
+      instantaneous_scan: true
+
+    # 推荐修改 default_handler 后设为 4
+    # 原始 18 万点/帧，10 Hz，没必要全部送入后续处理
+    point_filter_num: 4
+
+    # 只有 XYZI，没有 ring，必须关闭特征提取
+    feature_extract_enable: false
+
+    max_iteration: 4
+
+    # 128×1800 雷达非常密，体素不要设得太小
+    filter_size_corner: 0.20
+    filter_size_surf: 0.20
+    filter_size_map: 0.30
+
+    # 必须明显大于 3 * det_range
+    cube_side_length: 200.0
+
+    mapping:
+      # 下面是适合低噪声 Gazebo IMU 的起始值，
+      # 后续可根据漂移和振荡继续调
+      gyr_cov: 1.0e-5
+      acc_cov: 1.0e-3
+      b_gyr_cov: 1.0e-7
+      b_acc_cov: 1.0e-6
+
+      # 100 Hz IMU 下约为 2 s；启动后等待初始化完成再运动。
+      imu_init_samples: 200
+
+      fov_degree: 360.0
+
+      # 虽然仿真雷达最大量程 200 m，
+      # 室内建图不建议让 FAST-LIO 真使用 200 m
+      det_range: 60.0
+
+      # 仿真中外参已知，不要让滤波器继续估计
+      extrinsic_est_en: false
+
+      # 雷达和 IMU 原点、坐标轴都重合时：
+      extrinsic_T: [0.0, 0.0, 0.0]
+      extrinsic_R: [1.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0,
+                    0.0, 0.0, 1.0]
+
+    publish:
+      path_en: true
+      effect_map_en: false
+      map_en: false
+      scan_publish_en: true
+
+      # 调试时可以 true；电脑负载过大时改 false
+      dense_publish_en: true
+
+      scan_bodyframe_pub_en: true
+      tf_en: true
+
+    pcd_save:
+      pcd_save_en: false
+      interval: -1
+
+    # 对地面移动机器人建议开启，
+    # 让初始化后的世界 Z 轴和重力方向对齐
+    uav:
+      gravity_align_en: true
+
+    ground_vehicle:
+      # 当前 Gazebo 地面是水平面，轮式机器人只需要 x/y/yaw。
+      # 开启后固定初始化高度并抑制 roll/pitch/z 的平面退化漂移。
+      # 实机需要驶过坡道或起伏地面时必须设为 false。
+      planar_constraint_en: true
+
+    # 如果雷达、IMU 就位于机器人旋转中心，全部设零
+    odom_reference_offset_x: 0.0
+    odom_reference_offset_y: 0.0
+    odom_reference_yaw_offset: 0.0

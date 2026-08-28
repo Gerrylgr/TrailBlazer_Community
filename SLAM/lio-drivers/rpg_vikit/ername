@@ -1,0 +1,45 @@
+error: 错误的参数个数，应该为从 1 个到 2 个
+用法：git config [<选项>]
+
+配置文件位置
+    --global              使用全局配置文件
+    --system              使用系统级配置文件
+    --local               使用仓库级配置文件
+    --worktree            使用工作区级别的配置文件
+    -f, --file <文件>     使用指定的配置文件
+    --blob <数据对象 ID>  从给定的数据对象读取配置
+
+操作
+    --get                 获取值：名称 [值模式]
+    --get-all             获得所有的值：键 [值模式]
+    --get-regexp          根据正则表达式获得值：名称正则 [值模式]
+    --get-urlmatch        获得 URL 取值：section[.var] URL
+    --replace-all         替换所有匹配的变量：名称 值 [值模式]
+    --add                 添加一个新的变量：名称 值
+    --unset               删除一个变量：名称 [值模式]
+    --unset-all           删除所有匹配项：名称 [值模式]
+    --rename-section      重命名小节：old-name new-name
+    --remove-section      删除一个小节：name
+    -l, --list            列出所有
+    --fixed-value         在比较值与 '值模式' 时，使用字符串字面比较
+    -e, --edit            打开一个编辑器
+    --get-color           获得配置的颜色：配置 [默认]
+    --get-colorbool       获得颜色设置：配置 [stdout-is-tty]
+
+类型
+    -t, --type <>         取值为该类型
+    --bool                值是 "true" 或 "false"
+    --int                 值是十进制数
+    --bool-or-int         值是 --bool 或 --int
+    --bool-or-str         值是 --bool 或字符串
+    --path                值是一个路径（文件或目录名）
+    --expiry-date         值是一个到期日期
+
+其它
+    -z, --null            终止值是 NUL 字节
+    --name-only           只显示变量名
+    --includes            查询时参照 include 指令递归查找
+    --show-origin         显示配置的来源（文件、标准输入、数据对象，或命令行）
+    --show-scope          显示配置的作用域（工作区、本地、全局、系统、命令）
+    --default <取值>      使用 --get 参数，当缺少设置时使用默认值
+

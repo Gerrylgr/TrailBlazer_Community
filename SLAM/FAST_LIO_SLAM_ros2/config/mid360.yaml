@@ -1,0 +1,54 @@
+/**:
+  ros__parameters:
+    map_file_path: "./wlr722_map.pcd"
+
+    common:
+      lid_topic: "/vanjee_points722"
+      imu_topic: "/vanjee_lidar_imu_packets"
+      time_sync_en: false
+      time_offset_lidar_to_imu: 0.0
+
+    preprocess:
+      lidar_type: 7          # 建议新增 VANJEE722 = 7，见下方源码修改
+      scan_line: 32
+      blind: 0.20            # WLR-722 标称近距 0.2m，别用 0.1
+      timestamp_unit: 0      # SEC，点内 timestamp 看起来是秒
+      scan_rate: 10          # WLR-722 标称 10Hz
+
+    # 注意：你的源码读的是根参数 point_filter_num，不是 preprocess.point_filter_num
+    point_filter_num: 1      # 想降低延迟可以先试 2 或 3
+    feature_extract_enable: false
+
+    mapping:
+      acc_cov: 0.1
+      gyr_cov: 0.1
+      b_acc_cov: 0.0001
+      b_gyr_cov: 0.0001
+      fov_degree: 360.0
+      det_range: 40.0
+      extrinsic_est_en: true
+      extrinsic_T: [0.0, 0.0, 0.0]
+      extrinsic_R: [1.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0,
+                    0.0, 0.0, 1.0]
+
+    publish:
+      path_en: true
+      effect_map_en: false
+      map_en: false
+      scan_publish_en: true
+      dense_publish_en: true         # 是否发布稠密点云
+      scan_bodyframe_pub_en: true
+      tf_en: true            # 是否发布TF
+
+    pcd_save:
+      pcd_save_en: false
+      interval: -1
+
+    uav:
+      gravity_align_en: true        # 开启重力对齐
+
+    # 发布中心的 Odom
+    odom_reference_offset_x: 0.2
+    odom_reference_offset_y: 0.0
+    odom_reference_yaw_offset: 0.0
