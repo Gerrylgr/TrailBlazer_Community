@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "TrailBlazer Community"
+type: software
+authors:
+  - family-names: "Liu"
+    given-names: "Gengrui"
+repository-code: "https://github.com/Gerrylgr/TrailBlazer_Community"
+url: "https://github.com/Gerrylgr/TrailBlazer_Community"
+license: "GPL-3.0-only"

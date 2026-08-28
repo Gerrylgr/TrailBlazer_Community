@@ -1,0 +1,6 @@
+<library path="pointcloud_corrector">
+  <class type="pointcloud_corrector::PointCloudAligner" base_class_type="pointcloud_corrector::CorrectedPointCloudPublisherBase">
+    <name>pointcloud_corrector/PointCloudAligner</name>
+    <description>TF and Gravity Alignment for raw pointcloud.</description>
+  </class>
+</library>

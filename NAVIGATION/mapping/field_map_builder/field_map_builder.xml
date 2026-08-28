@@ -1,0 +1,6 @@
+<library path="field_map_builder">
+  <class type="field_map_builder::EsdfMapBuilding" base_class_type="field_map_builder::FieldMapBuilderBase">
+    <name>field_map_builder/EsdfMapBuilding</name>
+    <description>ESDF-map building plugin.</description>
+  </class>
+</library>

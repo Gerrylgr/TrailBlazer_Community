@@ -1,0 +1,6 @@
+<library path="global_planner">
+  <class type="global_planner::AstarEsdfGlobalPlanning" base_class_type="global_planner::GlobalPlannerBase">
+    <name>global_planner/AstarEsdfGlobalPlanning</name>
+    <description>ESDF-Astar global planning plugin.</description>
+  </class>
+</library>

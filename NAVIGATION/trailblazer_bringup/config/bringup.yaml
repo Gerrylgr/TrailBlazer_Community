@@ -1,0 +1,411 @@
+pointcloud_corrector_server:
+  ros__parameters:
+    use_sim_time: true
+
+    corrector_plugins:
+      - "FastLioAligner"
+
+    FastLioAligner:
+      plugin: "pointcloud_corrector::PointCloudAligner"
+
+      if_silence: true
+      if_debug: false
+      if_publish_single_frame: true
+
+      input_cloud_topic: "/cloud_registered"
+      input_odom_topic: "/Odometry"
+
+      output_cloud_topic: "/points_cropped"
+      output_single_topic: "/points_cropped_single"
+      output_submap_cloud_topic: "/submap_points_cropped"
+      output_frame: "map"
+
+      enable_translation_extrinsic: true
+      extrinsic_xyz: [0.0, 0.0, 0.192]
+
+      sliding_window_size: 3
+
+      crop_range_x: 7.0
+      crop_range_y: 7.0
+      crop_min_z: -2.0
+      crop_max_z: 2.0
+
+      submap_crop_x: 4.0
+      submap_crop_y: 4.0
+      submap_crop_min_z: 0.03
+      submap_crop_max_z: 2.0
+
+ground_segmentor_server:
+  ros__parameters:
+    use_sim_time: true
+
+    segmentor_plugins:
+      - "PCAGroundSegmentor"
+
+    PCAGroundSegmentor:
+      plugin: "ground_segmentor::GroundSegmentor"
+
+      if_silence: true
+      if_debug: false
+
+      frame_id_override: ""
+      input_pointcloud_frame: "map"
+
+      input_cloud_topic: "/points_cropped"
+      input_odom_topic: "/Odometry"
+      output_ground_points_topic: "/ground_points"
+      output_non_ground_points_topic: "/non_ground_points"
+
+      min_range: 0.1
+      max_range: 20.0
+      min_z: -2.0
+      max_z: 2.0
+
+      enable_voxel_downsample: true
+      voxel_leaf_size: 0.025
+
+      near_band_max_range: 4.0
+      mid_band_max_range: 10.0
+      near_grid_resolution: 0.60
+      mid_grid_resolution: 1.0
+      far_grid_resolution: 1.4
+
+      if_show_grid_map: true
+
+      min_points_per_cell: 4
+      plane_fit_z_thresh: 0.20
+      max_plane_flatness: 0.03
+      min_plane_planarity: 0.02
+      if_show_plane_cells: true
+
+      seed_max_angle_deg: 15.0
+      seed_local_height_range_thresh: 0.20
+      seed_height_thresh: 0.20
+      seed_search_radius: 2.5
+      ground_percentile_for_init: 0.15
+      if_show_seed_cells: true
+
+      grow_max_angle_deg: 15.0
+      grow_center_height_diff: 0.20
+      grow_border_height_diff: 0.15
+      grow_min_neighbor_points: 4
+      border_band_width: 0.25
+      allow_no_plane_neighbor: true
+      low_percentile_for_border: 0.30
+      if_show_ground_groups: true
+
+      group_merge_height_diff: 0.15
+      group_merge_angle_deg: 15.0
+      grow_ground_height_diff: 0.15
+      gap_tolerance: 1.5
+      group_merge_gap_angle_deg: 20.0
+      group_gap_max_predict_height_diff: 0.10
+
+      mixed_cell_height_range_thresh: 0.20
+      mixed_cell_low_percentile: 0.12
+      mixed_cell_min_low_points: 4
+      mixed_cell_recovered_max_angle_deg: 40.0
+      mixed_cell_recovered_height_diff: 0.15
+      mixed_cell_point_to_plane_thresh: 0.05
+
+      point_to_plane_ground_thresh: 0.15
+      confidence_thresh: 0.10
+
+occupancy_mapping_server:
+  ros__parameters:
+    use_sim_time: true
+
+    occupancy_plugins:
+      - "OrdinaryOccupancyMapper"
+
+    OrdinaryOccupancyMapper:
+      plugin: "occupancy_mapping::OrdinaryOccupancyMapping"
+
+      if_silence: true
+      if_debug: false
+
+      input_odom_topic: "/Odometry_centered"
+
+      ground_topic: "/ground_points"
+      non_ground_topic: "/non_ground_points"
+
+      submap_cloud_topic: "/submap_points_cropped"
+      submap_output_topic: "/occupancy_submap"
+
+      map_status_topic: "/map_status"
+
+      static_map_topic: "/occupancy_static_map"
+      inflation_map_topic: "/inflation_occupancy_map"
+
+      start_mapping_service: "/start_static_mapping"
+      stop_mapping_service: "/stop_static_mapping"
+      error_clearing_service: "/error_clearing"
+      start_incremental_service: "/start_incremental"
+
+      frame_id: "map"
+
+      # 只在 MAP_READY 时由 timer 按此频率发布
+      map_publish_frequency: 1
+
+      initial_width: 10.0
+      initial_height: 10.0
+      resolution: 0.05
+
+      expand_margin: 2.0
+
+      if_strict: false       # 开启会使用相对高度来查询，但需要障碍物点周围有地面点格子
+
+      cloud_sync_tolerance: 0.2
+
+      # Ground cell
+      min_ground_points_per_cell: 4
+      ground_percentile: 0.4
+
+      # Obstacle cell
+      min_obstacle_height: 0.02
+      strong_obstacle_height: 0.1
+      min_non_ground_count: 3
+      min_mean_height: 0.04
+      min_strong_count: 2
+
+      # Raycast
+      enable_ground_raycast: false
+      enable_non_ground_raycast: true
+      raycast_point_step: 1
+      raycast_min_range: 0.15
+      raycast_max_range: 20.0
+      raycast_endpoint_margin_cells: 1
+
+      # Log odds
+      hit_logodds: 1.0
+      miss_logodds: 0.5
+      raycast_miss_logodds: 0.3
+      logodds_min: -2.5
+      logodds_max: 3.5
+
+      # Occupancy hysteresis
+      occ_enter_thresh: 0.1
+      occ_exit_thresh: -0.5
+      free_thresh: -1.0
+
+      # Map persistence
+      map_directory: "/home/gerry/TrailBlazer_Community/maps"
+      map_name: "default"
+
+      # Inflation
+      inflate_unknown: true
+      inflation_ring1_cost: 80
+      inflation_ring2_cost: 50
+
+      # submap
+      submap_min_points_per_cell: 2
+      submap_inflate: true
+
+field_map_builder_server:
+  ros__parameters:
+    use_sim_time: true
+
+    field_map_plugins:
+      - "EsdfMapBuilder"
+
+    EsdfMapBuilder:
+      plugin: "field_map_builder::EsdfMapBuilding"
+
+      if_silence: true
+      if_debug: false
+
+      input_costmap_topic: "/occupancy_static_map"
+      esdf_debug_topic: "/esdf_debug"
+      esdf_topic: "/esdf_map"
+
+      unknown_as_obstacle: false
+      publish_debug_esdf: true
+      max_esdf_distance: 10.0
+
+global_planner_server:
+  ros__parameters:
+    use_sim_time: true
+
+    global_planner_plugins:
+      - "AstarEsdfGlobalPlanner"
+
+    AstarEsdfGlobalPlanner:
+      plugin: "global_planner::AstarEsdfGlobalPlanning"
+
+      if_silence: true
+
+      global_path_topic: "/original_global_path"
+      input_costmap_topic: "/inflation_occupancy_map"
+      input_esdf_topic: "/esdf_map"
+      input_odom_topic: "/Odometry_centered"
+      input_goal_topic: "/goal_pose"
+
+      if_keep_planning: false
+
+      min_dist_to_plan: 0.2
+      treat_unknown_as_obstacle: false
+      obstacle_threshold: 50
+      min_esdf_value_for_goal: 0.2
+
+      unknown_cost_penalty: 50
+      cost_scale: 2.0
+      
+      if_path_downsampling: false
+      corner_deg: 30
+      corner_dilate: 1
+
+      use_esdf_soft_cost: true
+      safe_clearance: 1.0
+      esdf_cost_scale: 3.0
+
+path_optimizer_server:
+  ros__parameters:
+    use_sim_time: true
+
+    path_optimizer_plugins:
+      - "LbfgsBsplineOptimizer"
+
+    LbfgsBsplineOptimizer:
+      plugin: "path_optimizer::LbfgsBsplineOptimizing"
+
+      if_silence: false
+      if_debug: true
+
+      init_bspline_topic: "/init_bspline_path"
+      optimized_path_topic: "/optimized_global_path"
+      input_esdf_topic: "/esdf_map"
+      original_path_topic: "/original_global_path"
+
+      input_path_resolution: 0.2
+      output_path_resolution: 0.05
+      output_parameter_step: 0.1
+
+      if_reference_cost: true
+      if_curvature_cost: true
+
+      lambda_smooth: 1.0
+      lambda_distance: 5.0
+      obstacle_dist: 0.8
+      lambda_reference: 0.05
+      reference_tolerance: 0.2
+      lambda_curvature: 0.001
+      max_curvature: 1.0
+      tangent_epsilon: 1e-4
+
+      max_iterations: 200
+      if_lbfgs: true
+      g_epsilon: 1e-3
+
+      fixed_boundary_control_points: 3
+      optimization_samples_per_span: 3
+      
+      memory_size: 8
+      lbfgs_past: 5
+      lbfgs_delta: 0.0001
+      max_linesearch: 20
+
+local_planner_server:
+  ros__parameters:
+    use_sim_time: true
+
+    path_optimizer_plugins:
+      - "MPPILocalPlannerPlugin"
+
+    MPPILocalPlannerPlugin:
+      plugin: "local_planner::MPPILocalPlanner"
+
+      control_period_sec: 0.1
+      transform_timeout_sec: 0.05
+      compensate_state_latency: true
+      max_state_extrapolation_sec: 0.30
+
+      optimizer_settings:
+        model_dt: 0.1
+        time_steps: 30
+        batch_size: 200
+        iteration_count: 1
+
+        adaptive_temperature: true
+        temperature: 0.70        # 自适应关闭时的 fallback
+        target_ess_ratio: 0.3
+        min_temperature: 0.20
+        max_temperature: 2.00
+        gamma: 0.01
+
+        vx_min: 0.0
+        vx_max: 0.80
+        wz_max: 0.80
+        vx_std: 0.15
+        wz_std: 0.35
+        ax_min: -0.80
+        ax_max: 0.80
+        az_max: 2.00             
+
+        weight_logging_enabled: false
+
+      critics:
+        path_follow:
+          enabled: true
+          cost_weight: 3.0
+          max_endpoint_path_distance: 0.30
+          offset_from_furthest: 3
+
+        path_tracking:
+          enabled: true
+          cost_weight: 1.0
+
+          lateral_error_weight: 18.0
+          heading_error_weight: 8.0
+          speed_error_weight: 18.0
+
+          trajectory_step: 2
+          time_discount: 0.96
+
+          max_linear_speed: 0.8
+          min_curve_speed: 0.06
+
+          curvature_gain: 1.20
+          lateral_error_speed_gain: 5.0
+          heading_error_speed_gain: 2.0
+
+          curvature_lookahead: 4
+
+          # ---- 横向阻尼 ----
+          lateral_velocity_weight: 3.0
+          yaw_rate_error_weight: 2.0
+          yaw_rate_gate_distance: 0.2
+
+          # ---- 收敛航向 ----
+          use_convergence_heading: true
+          convergence_gain: 1.5
+          softening_speed: 0.2
+          max_convergence_angle: 0.45
+
+          yaw_rate_heading_gain: 1.5
+
+          projection_search_window: 12
+
+        # 新 critic 已同时处理折线投影距离和切线航向，先关闭旧版，避免重复计费。
+        path_align:
+          enabled: false
+        path_angle:
+          enabled: false
+
+        esdf:
+          enabled: true
+          trajectory_step: 2
+
+lifecycle_manager_trailblazer:
+  ros__parameters:
+    use_sim_time: true
+    autostart: true
+    bond_timeout: 0.0
+
+    node_names:
+      - pointcloud_corrector_server
+      - ground_segmentor_server
+      - occupancy_mapping_server
+      - field_map_builder_server
+      - global_planner_server
+      - path_optimizer_server
+      - local_planner_server

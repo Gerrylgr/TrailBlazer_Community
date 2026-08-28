@@ -1,0 +1,6 @@
+<library path="ground_segmentor">
+  <class type="ground_segmentor::GroundSegmentor" base_class_type="ground_segmentor::GroundSegmentorBase">
+    <name>ground_segmentor/GroundSegmentor</name>
+    <description>Ground-Segment based on pointcloud-aligned.</description>
+  </class>
+</library>

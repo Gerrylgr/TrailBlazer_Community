@@ -1,0 +1,6 @@
+<library path="path_optimizer">
+  <class type="path_optimizer::LbfgsBsplineOptimizing" base_class_type="path_optimizer::PathOptimizerBase">
+    <name>path_optimizer/LbfgsBsplineOptimizing</name>
+    <description>Bspline-parameterize+LBFGS optimizing plugin.</description>
+  </class>
+</library>

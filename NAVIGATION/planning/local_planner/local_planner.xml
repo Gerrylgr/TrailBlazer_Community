@@ -1,0 +1,6 @@
+<library path="local_planner">
+  <class type="local_planner::MPPILocalPlanner" base_class_type="local_planner::LocalPlannerBase">
+    <name>local_planner/MPPILocalPlanner</name>
+    <description>MPPI local planner plugin.</description>
+  </class>
+</library>

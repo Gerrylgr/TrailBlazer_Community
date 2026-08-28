@@ -1,0 +1,6 @@
+<library path="ordinary_occupancy_mapping">
+  <class type="occupancy_mapping::OrdinaryOccupancyMapping" base_class_type="occupancy_mapping::OccupancyMappingBase">
+    <name>occupancy_mapping/OrdinaryOccupancyMapping</name>
+    <description>Occupancy mapping plugin.</description>
+  </class>
+</library>
