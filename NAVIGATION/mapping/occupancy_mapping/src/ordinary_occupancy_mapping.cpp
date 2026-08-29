@@ -2,7 +2,10 @@
 
 #include <pluginlib/class_list_macros.hpp>
 
+#include <filesystem>
 #include <sstream>
+
+namespace fs = std::filesystem;
 
 namespace occupancy_mapping
 {
@@ -122,7 +125,20 @@ namespace occupancy_mapping
         occ_exit_thresh_ = declare_or_get_parameter<double>(node, p + "occ_exit_thresh", -0.5);
         free_thresh_ = declare_or_get_parameter<double>(node, p + "free_thresh", -1.0);
 
-        map_directory_ = declare_or_get_parameter<std::string>(node, p + "map_directory", "/tmp/trailblazer_maps");
+        const char * home = std::getenv("HOME");
+
+        fs::path default_map_dir;
+
+        if (home)
+        {
+            default_map_dir = fs::path(home) / ".trailblazer" / "maps";
+        }
+        else
+        {
+            default_map_dir = fs::current_path() / "maps";
+        }
+
+        map_directory_ = declare_or_get_parameter<std::string>(node, p + "map_directory", default_map_dir.string());
         map_name_ = declare_or_get_parameter<std::string>(node, p + "map_name", "default");
 
         inflate_unknown_ = declare_or_get_parameter<bool>(node, p + "inflate_unknown", true);

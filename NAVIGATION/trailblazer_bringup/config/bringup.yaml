@@ -189,7 +189,7 @@ occupancy_mapping_server:
       free_thresh: -1.0
 
       # Map persistence
-      map_directory: "/home/gerry/TrailBlazer_Community/maps"
+      # map_directory: "maps"
       map_name: "default"
 
       # Inflation
