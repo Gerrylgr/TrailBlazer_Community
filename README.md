@@ -14,12 +14,12 @@ TrailBlazer Community 是一个面向移动机器人自主导航的开源 ROS 2 
   <img
     src="docs/media/GIF_2.gif"
     alt="Outdoor navigation demo"
-    width="440"
+    width="900"
   />
   <img
     src="docs/media/GIF_1.gif"
     alt="Indoor navigation demo"
-    width="440"
+    width="900"
   />
 </p>
 
