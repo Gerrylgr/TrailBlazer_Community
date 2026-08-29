@@ -13,12 +13,12 @@ TrailBlazer Community 是一个面向移动机器人自主导航的开源 ROS 2 
 <p align="center">
   <img
     src="docs/media/GIF_2.gif"
-    alt="Outdoor navigation demo"
+    alt="Gazebo navigation demo"
     width="900"
   />
   <img
     src="docs/media/GIF_1.gif"
-    alt="Indoor navigation demo"
+    alt="Gazebo navigation demo"
     width="900"
   />
 </p>
@@ -38,6 +38,14 @@ TrailBlazer Community 是一个面向移动机器人自主导航的开源 ROS 2 
 - **统一启动与配置**：`trailblazer_bringup` 集中管理参数、插件选择、节点启动顺序和自动激活。
 - **多 Server 协同运行**：感知、地图、规划和控制 Server 可作为独立节点同时运行，便于隔离故障和调试。
 - **面向组件化部署**：后续将通过 `rclcpp_components` 提供可选 composition 模式，使 Server 既可作为独立进程运行，也可按需装载到同一组件容器中。
+
+<p align="center">
+  <img
+    src="docs/image/image.png"
+    alt="Explanation for project architecture design."
+    width="800"
+  />
+</p>
 
 ## System Overview
 
