@@ -278,6 +278,7 @@ namespace ground_segmentor
         has_odom_ = true;
     }
 
+    // reset grid_map_
     void GroundSegmentor::reset_grid_map()
     {
         grid_map_.clear();
@@ -366,7 +367,7 @@ namespace ground_segmentor
         if (!node) 
             return;        
 
-        reset_grid_map();
+        reset_grid_map();           
 
         if (processed_points_.empty())
             return;
@@ -579,7 +580,7 @@ namespace ground_segmentor
         }
     }
 
-    // 取机器人周围的格子来预测主地面高度
+    // 取机器人周围的格子，根据低分位数来预测主地面高度
     bool GroundSegmentor::estimate_ground_height_from_nearby_points()
     {
         auto node = node_.lock();
@@ -974,7 +975,7 @@ namespace ground_segmentor
             group.id = next_group_id;
             group.ref_plane = seed_cell.plane;
 
-            std::queue<GridIndex> q;
+            std::queue<GridIndex> q;                // 待探索的格子索引（必须是 ground 的一部分）
             q.push(seed_idx);
 
             seed_cell.group_id = group.id;
@@ -1018,6 +1019,7 @@ namespace ground_segmentor
         }
     }
 
+    // 选取距离机器人最近的一个 ground-group 作为 main-ground-group
     int GroundSegmentor::select_main_ground_group() const
     {
         auto node = node_.lock();
@@ -1364,7 +1366,7 @@ namespace ground_segmentor
         return ground_set;
     }
 
-    // 找到两个平面最近的、且相邻的格子
+    // （通过遍历两个平面的所有格子）找到两个平面最近的、且相邻的格子
     bool GroundSegmentor::find_best_adjacent_cell_pair_between_groups(
         const GroundGroup &main_group,
         const GroundGroup &other_group,
@@ -1516,7 +1518,7 @@ namespace ground_segmentor
     // 提取低分位点索引
     std::vector<int> GroundSegmentor::extract_low_percentile_point_indices(const CellData &cell, float q) const
     {
-        std::vector<std::pair<float, int>> zs_and_idx;
+        std::vector<std::pair<float, int>> zs_and_idx;          // 存储 z 高度和 index
         zs_and_idx.reserve(cell.point_indices.size());
 
         for(const int idx : cell.point_indices)
@@ -1526,6 +1528,7 @@ namespace ground_segmentor
             zs_and_idx.emplace_back(processed_points_[idx].z, idx);
         }
 
+        // 按照 z 轴高度排序
         std::sort(zs_and_idx.begin(), zs_and_idx.end(), [](const auto &a, const auto &b)
                                                             {
                                                                 return a.first < b.first;
@@ -1825,7 +1828,7 @@ namespace ground_segmentor
             }
         }
 
-        // Pass-2: 宽邻域恢复，允许在 2-ring 内找 ground plane，解决地面 skeleton 有小断裂的情况。
+        // Pass-2: 宽邻域恢复，解决地面 skeleton 有小断裂的情况。
         for (auto &kv : grid_map_)
         {
             const GridIndex idx = kv.first;
@@ -1921,7 +1924,7 @@ namespace ground_segmentor
             return;
         }
 
-        // 取出 NaN/Inf 点
+        // 去除 NaN/Inf 点
         pcl::PointCloud<pcl::PointXYZI>::Ptr no_nan_cloud(new pcl::PointCloud<pcl::PointXYZI>());
         std::vector<int> indices;
         pcl::removeNaNFromPointCloud(*input_cloud, *no_nan_cloud, indices);     // 不保证去除 Inf 点，后边会遍历手动去除

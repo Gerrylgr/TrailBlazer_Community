@@ -57,17 +57,26 @@ namespace pointcloud_corrector
 
             void reset_runtime_state();
 
-            bool loadTranslationExtrinsic();
+            void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
-            bool hasField(const sensor_msgs::msg::PointCloud2 & cloud_in, const std::string & field_name) const;
-
-            bool hasXYZfields(const sensor_msgs::msg::PointCloud2 & cloud_in) const;
-
+            // ================== main pipeline ==================
+            /*
+            *   检查 node/里程计
+            *   对单帧点云做变换
+            *   合并点云、对单帧/多帧点云裁剪发布
+            */
+            void pointcloud_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
+            /*
+            * 检查node/点云/外参等合法性
+            * 对单帧点云做外参变换，并推入 cloud_buffer_
+            * 返回单帧的变换后点云 pcl_transformed
+            */
             pcl::PointCloud<pcl::PointXYZI>::Ptr transformAndAddToBuffer(const sensor_msgs::msg::PointCloud2 & cloud_in);
 
-            void pointcloud_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
-
-            void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+            // ================== helpers ==================
+            bool loadTranslationExtrinsic();
+            bool hasField(const sensor_msgs::msg::PointCloud2 & cloud_in, const std::string & field_name) const;
+            bool hasXYZfields(const sensor_msgs::msg::PointCloud2 & cloud_in) const;
 
         private:
             LifecycleNodeWeakPtr node_;
@@ -117,7 +126,7 @@ namespace pointcloud_corrector
             std::mutex odom_mutex_;
             nav_msgs::msg::Odometry::SharedPtr latest_odom_;
 
-            std::deque<pcl::PointCloud<pcl::PointXYZI>::Ptr> cloud_buffer_;             // 存储滑动窗口的多帧点云
+            std::deque<pcl::PointCloud<pcl::PointXYZI>::Ptr> cloud_buffer_;             // 存储滑动窗口的多帧点云（使用双端队列是因为头尾的插入/删除更高效）
     };
 
 }  // namespace pointcloud_corrector

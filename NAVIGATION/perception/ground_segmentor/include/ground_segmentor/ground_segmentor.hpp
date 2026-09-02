@@ -298,14 +298,14 @@ namespace ground_segmentor
             bool if_show_grid_map_ = true;
 
             // plane-fit
-            int min_points_per_cell_ = 4;
-            double plane_fit_z_thresh_ = 0.25;
+            int min_points_per_cell_ = 4;               // 一个格子中最少的点数
+            double plane_fit_z_thresh_ = 0.25;          // 格子内部高度落差超过这个值，怀疑是 mixed-cell
             double max_plane_flatness_ = 0.03;
             double min_plane_planarity_ = 0.2;
             bool if_show_plane_cells_ = true;
 
             // seed
-            double seed_max_angle_deg_ = 15.0;
+            double seed_max_angle_deg_ = 15.0;                  // seed 格子内部法向量最大偏角
             double seed_local_height_range_thresh_ = 0.2;         // seed 格子内部 max_z 与 min_z 的最大差值
             double seed_height_thresh_ = 0.2;         // seed 格子内部的中心距离预测的主地面高度允许的最大差值
             double seed_search_radius_ = 2.5;         // 拿周围 2.5m 以内的点做主平面高度预测
@@ -318,11 +318,11 @@ namespace ground_segmentor
             double grow_border_height_diff_ = 0.15;       // 格子边界连续性判断阈值
             int grow_min_neighbor_points_ = 4;        // 允许生长格子要包含的最少点数
             double border_band_width_ = 0.15;         // 取 0.15m 的边界点用来做边界连续性检测
-            bool allow_no_plane_neighbor_ = true;           // 允许没有平面的格子加入
-            double low_percentile_for_border_ = 0.2;        // 边界低分位数
+            bool allow_no_plane_neighbor_ = true;           // 允许没有平面的格子 grow 进 ground-group 中
+            double low_percentile_for_border_ = 0.2;        // （边界连续性检查时的）边界低分位数
             bool if_show_ground_groups_ = true;
 
-            double group_merge_distance_ = 1.0;     // 平面间允许合并的最远距离
+            // double group_merge_distance_ = 1.0;     // 平面间允许合并的最远距离
             double group_merge_height_diff_ = 0.2;      // 平面间允许合并的最大高度差
             double group_merge_angle_deg_ = 10;       // 平面间允许合并的最大法向角度差
             double grow_ground_height_diff_ = 0.15;     // 平面合并时边界连续性检查阈值
@@ -335,7 +335,7 @@ namespace ground_segmentor
             // mixed cell recovery
             double mixed_cell_height_range_thresh_ = 0.2;      // 格子内部的高度差要有多大，才怀疑它是个“混合格子”
             double mixed_cell_low_percentile_ = 0.15;        // 取混合格子的多少分位以内的点来重新拟合平面
-            int mixed_cell_min_low_points_ = 4;         // 重新拟合平面所需的最少点数
+            int mixed_cell_min_low_points_ = 4;             // （使用低分位点）重新拟合平面所需的最少点数
             double mixed_cell_recovered_max_angle_deg_ = 15.0;        // 恢复出来的 low plane 与邻域 ground plane 最大允许夹角
             double mixed_cell_recovered_height_diff_ = 0.15;        // low plane 和邻域 ground 的最大允许高度差
             double mixed_cell_point_to_plane_thresh_ = 0.08;        // low plane 中距离平面小于这个值的才算是地面点
@@ -349,21 +349,21 @@ namespace ground_segmentor
             rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
 
             // --------------------- Lifecycle publishers ---------------------
-            rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr grid_map_pub_;
-            rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr plane_fit_pub_;
-            rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr seed_cells_pub_;
-            rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr ground_group_pub_;
+            rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr grid_map_pub_;               // 2.5D 网格可视化（发布网格中心的点，intensity 存的是所属圈层）         
+            rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr plane_fit_pub_;              // plane-fit 结果发布（intensity 中填的是法向量的 z 值）
+            rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr seed_cells_pub_;             // 发布 seed 格子（intensity 为 1.0）
+            rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr ground_group_pub_;           // 发布为 ground 的格子（intensity 为 1.0）
 
             rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr ground_cloud_pub_;
             rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr non_ground_cloud_pub_;
 
             // --------------------- Runtime state ---------------------
-            std::vector<PointXYZIConf> processed_points_;
-            std::unordered_map<GridIndex, CellData, GridIndexHash> grid_map_;
-            std::vector<GroundGroup> ground_groups_;
+            std::vector<PointXYZIConf> processed_points_;                   // 自定义结构体
+            std::unordered_map<GridIndex, CellData, GridIndexHash> grid_map_;           // 网格数据结构（index 与对应的 CellData）
+            std::vector<GroundGroup> ground_groups_;                    
 
             bool has_estimated_ground_z_ = false;
-            float estimated_ground_z_ = 0.0f;
+            float estimated_ground_z_ = 0.0f;           // 估计的主地面高度
             double robot_x_, robot_y_, robot_z_;        // 最新的机器人位置
             double frame_robot_x_ = 0.0, frame_robot_y_ = 0.0, frame_robot_z_ = 0.0;      // 一帧中的机器人位置
             bool has_frame_pose_ = false;

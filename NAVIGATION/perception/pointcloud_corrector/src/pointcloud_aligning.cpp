@@ -115,22 +115,22 @@ namespace pointcloud_corrector
         submap_crop_min_z_ = declare_or_get_parameter<double>(node, p + "submap_crop_min_z", 0.03);
         submap_crop_max_z_ = declare_or_get_parameter<double>(node, p + "submap_crop_max_z", 2.0);
 
-        RCLCPP_INFO_STREAM(
-            node->get_logger(),
-            "PointCloudAligner parameters loaded."
-            << " plugin_name=" << plugin_name_
-            << ", input_cloud_topic=" << input_cloud_topic_
-            << ", input_odom_topic=" << input_odom_topic_
-            << ", output_cloud_topic=" << output_cloud_topic_
-            << ", output_frame=" << output_frame_
-            << ", sliding_window_size=" << sliding_window_size_
-            << ", crop_range_x_half=" << crop_range_x_
-            << ", crop_range_y_half=" << crop_range_y_
-            << ", crop_min_z_rel=" << crop_min_z_
-            << ", crop_max_z_rel=" << crop_max_z_
-            << ", enable_translation_extrinsic="
-            << (enable_translation_extrinsic_ ? "true" : "false")
-        );
+        // RCLCPP_INFO_STREAM(
+        //     node->get_logger(),
+        //     "PointCloudAligner parameters loaded."
+        //     << " plugin_name=" << plugin_name_
+        //     << ", input_cloud_topic=" << input_cloud_topic_
+        //     << ", input_odom_topic=" << input_odom_topic_
+        //     << ", output_cloud_topic=" << output_cloud_topic_
+        //     << ", output_frame=" << output_frame_
+        //     << ", sliding_window_size=" << sliding_window_size_
+        //     << ", crop_range_x_half=" << crop_range_x_
+        //     << ", crop_range_y_half=" << crop_range_y_
+        //     << ", crop_min_z_rel=" << crop_min_z_
+        //     << ", crop_max_z_rel=" << crop_max_z_
+        //     << ", enable_translation_extrinsic="
+        //     << (enable_translation_extrinsic_ ? "true" : "false")
+        // );
     }
 
     bool PointCloudAligner::loadTranslationExtrinsic()
@@ -403,11 +403,6 @@ namespace pointcloud_corrector
         }
     }
 
-    /*
-    * 检查node/点云/外参等合法性
-    * 对单帧点云做外参变换，并推入 cloud_buffer_
-    * 返回单帧的变换后点云 pcl_transformed
-    */
     pcl::PointCloud<pcl::PointXYZI>::Ptr PointCloudAligner::transformAndAddToBuffer(const sensor_msgs::msg::PointCloud2 & cloud_in)
     {
         auto node = node_.lock();
