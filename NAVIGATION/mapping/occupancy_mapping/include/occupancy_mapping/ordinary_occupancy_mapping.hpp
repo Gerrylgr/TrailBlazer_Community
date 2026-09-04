@@ -276,7 +276,7 @@ namespace occupancy_mapping
             std::vector<GroundCell> ground_cells_;
             std::vector<ObstacleCell> obstacle_cells_;
 
-            std::vector<std::uint8_t> raycast_free_mask_;
+            std::vector<std::uint8_t> raycast_free_mask_;       // 用于标记有哪些 free 格子是 raycast 出来的（后边置信度计算时，raycast 出来的没有那么可信）
 
             std::vector<int8_t> frame_grid_;                    // 单帧融合地图
             std::vector<FinalCell> final_cells_;                // final cells

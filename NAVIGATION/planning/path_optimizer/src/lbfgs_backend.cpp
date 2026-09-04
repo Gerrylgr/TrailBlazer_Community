@@ -149,6 +149,8 @@ int LbfgsBackend::monitorProgress(
 {
     (void)x; (void)step; (void)ls;
 
+    (void)g; (void)fx; (void)k;
+
     auto * context = static_cast<OptimizationContext *>(instance);
 
     // 硬失败（采样点出地图等）：返回非 0，lbfgs 会立刻终止本次求解

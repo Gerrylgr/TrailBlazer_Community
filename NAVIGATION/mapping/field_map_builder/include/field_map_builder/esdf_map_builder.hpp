@@ -132,7 +132,7 @@ namespace field_map_builder
             std::vector<float> edt_line_input_;                 // EDT-line-input（0 或者无穷大）
             std::vector<float> edt_line_output_;
             std::vector<int> edt_parabola_indices_;             // 最终“有效”的抛物线索引（下包络线）
-            std::vector<float> edt_parabola_boundaries_;        
+            std::vector<float> edt_parabola_boundaries_;        // 抛物线有效区间（右边界）       
 
             nav_msgs::msg::OccupancyGrid esdf_debug_map_msg_;
             trailblazer_map_interfaces::msg::EsdfMap esdf_map_msg_;

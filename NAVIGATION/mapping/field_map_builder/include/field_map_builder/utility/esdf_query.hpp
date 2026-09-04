@@ -1,3 +1,9 @@
+
+/*
+*   ESDF 数据接口类，对外提供 ESDF 地图的数据查询等接口
+*   思路：
+*       原子操作更新 esdf msg/获取 EsdfMapSnapshot 对象，其余的梯度查询等处就无需上锁
+*/
 #pragma once
 
 #include <atomic>

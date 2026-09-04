@@ -45,10 +45,10 @@ namespace occupancy_mapping
 
         float sum_z = 0.0f;
 
-        float mean_z = 0.0f;
+        float mean_z = 0.0f;            // 暂时没用上
         float ground_z = 0.0f;           // 该格的地面高度估计
 
-        std::vector<float> z_values;    // 第一版直接累积所有 ground z，后续可再优化为滑窗/限长
+        std::vector<float> z_values;    // 第一版直接累积所有 ground z
 
         void reset()
         {
@@ -68,8 +68,8 @@ namespace occupancy_mapping
         int non_ground_count = 0;          // 总候选点数
         int strong_count = 0;              // 强障碍证据点数
 
-        float mean_height = 0.0f;
-        float sum_height = 0.0f;
+        float mean_height = 0.0f;           // cell.mean_height = cell.sum_height / static_cast<float>(cell.non_ground_count);
+        float sum_height = 0.0f;            
 
         bool is_candidate = false;         // 本帧/当前累计下是否认为是障碍候选
 

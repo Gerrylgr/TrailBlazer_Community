@@ -357,13 +357,14 @@ namespace field_map_builder
                 const float q_float = static_cast<float>(q);                // q 代表候选的、新抛物线的中心对应的索引 i
                 const float vertex_float = static_cast<float>(vertex);
                 // 求交点（见 /image 下图片）
-                const float numerator =
+                const float numerator =                     // 分子
                     (edt_line_input_[static_cast<std::size_t>(q)] + q_float * q_float) -
                     (edt_line_input_[static_cast<std::size_t>(vertex)] +
                     vertex_float * vertex_float);
                 const float denominator = 2.0f * (q_float - vertex_float);
                 const float intersection = numerator / denominator;         // 这个交点表示，从哪个位置开始，新抛物线会低于旧抛物线
 
+                // 每次将交点与当前的右边界来相比
                 // 交点更靠右，证明当前索引（k）对应的抛物线是有效的（有一部分是下包络线）
                 if (intersection > edt_parabola_boundaries_[static_cast<std::size_t>(k)])
                 {

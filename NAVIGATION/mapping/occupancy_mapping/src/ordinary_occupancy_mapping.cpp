@@ -443,13 +443,14 @@ namespace occupancy_mapping
                     std::placeholders::_2)
         );
 
-        start_incremental_server_ = node->create_service<std_srvs::srv::Trigger>(
-            start_incremental_service_,
-            std::bind(
-                &OrdinaryOccupancyMapping::startIncrementalCallback,
-                this,
-                std::placeholders::_1,
-                std::placeholders::_2)
+        start_incremental_server_ = 
+            node->create_service<std_srvs::srv::Trigger>(
+                start_incremental_service_,
+                std::bind(
+                    &OrdinaryOccupancyMapping::startIncrementalCallback,
+                    this,
+                    std::placeholders::_1,
+                    std::placeholders::_2)
         );
     }
 
@@ -715,7 +716,7 @@ namespace occupancy_mapping
         {
             std::lock_guard<std::mutex> lock(map_mutex_);
 
-            // 只在 ERROR 时允许 CLEARING
+            // 只在 ERROR 时允许 CLEARING（清除错误）
             if(state_ != MapState::ERROR)
             {
                 response->success = false;
