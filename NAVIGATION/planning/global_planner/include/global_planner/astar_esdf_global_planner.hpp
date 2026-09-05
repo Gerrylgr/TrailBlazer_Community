@@ -164,7 +164,7 @@ namespace global_planner
                 double x{0.0};
                 double y{0.0};
                 uint64_t generation{0};
-                bool planned{false};
+                bool planned{false};                    // 标记这个 goal 是否已经规划过
                 std::string frame_id;
             };
 

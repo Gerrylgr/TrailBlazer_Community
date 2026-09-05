@@ -31,7 +31,7 @@ namespace path_optimizer
         int max_iterations{100};
         double g_epsilon{1e-4};
         int fixed_boundary_control_points{3};
-        int optimization_samples_per_span{5};
+        int optimization_samples_per_span{5};           // 计算 ESDF 代价时每段样条的采样个数
 
         int memory_size{8};
         int past{5};
@@ -68,7 +68,7 @@ namespace path_optimizer
     // 每次 optimize() 在栈上创建一份，lbfgs 回调通过 void* 拿到它
     struct OptimizationContext
     {
-        const LbfgsBackend * backend{nullptr};   // 静态回调里用它调回后端 const 函数
+        const LbfgsBackend * backend{nullptr};   // 静态回调里需要使用它来调回后端 const 函数
 
         LbfgsBackendConfig config;               // 本次求解用的配置快照（拷贝）
 

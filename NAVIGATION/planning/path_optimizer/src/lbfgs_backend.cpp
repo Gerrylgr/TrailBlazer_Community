@@ -132,9 +132,9 @@ double LbfgsBackend::evaluate(
 double LbfgsBackend::costFunction(
     void * instance,
     const Eigen::VectorXd & x,
-    Eigen::VectorXd & g)
+    Eigen::VectorXd & g)                // g 是需要求解的梯度
 {
-    auto * context = static_cast<OptimizationContext *>(instance);
+    auto * context = static_cast<OptimizationContext *>(instance);          // 用到了 LbfgsBackend* 指针
     return context->backend->evaluate(*context, x, g);
 }
 
@@ -175,6 +175,43 @@ int LbfgsBackend::monitorProgress(
 }
 
 // 核心 optimize 函数，调用 LBFGS-Lite 求解库
+/*
+┌─────────────────────────────────────────────────────────┐
+│ LbfgsBackend::optimize(request)          [const 成员函数]│
+└─────────────────────────────────────────────────────────┘
+   │
+   ├─► computeCostAndGradient(context, 初始点, init_grad, print="Initial")
+   │       ├─► computeSmoothnessCost()
+   │       ├─► computeDistanceCost()      ──► esdf->distance_and_gradient()
+   │       ├─► computeReferenceCost()
+   │       └─► computeCurvatureCost()
+   │
+   ├─► runLbfgsOnce(start_ctrl_pts, context, max_iter, final_cost)
+   │       │
+   │       ├─► flattenInnerControlPoints()      // 二维 → 一维 x
+   │       │
+   │       ├─► lbfgs::lbfgs_optimize(x, final_cost,
+   │       │              costFunction,  nullptr,
+   │       │              monitorProgress, &context, params)
+   │       │       │
+   │       │       │   【库内部反复回调】
+   │       │       ├─► LbfgsBackend::costFunction(&context, x, g)   ×N 次
+   │       │       │       └─► evaluate(context, x, g)
+   │       │       │               ├─► assignInnerControlPoints()   // 一维 → 二维
+   │       │       │               ├─► computeCostAndGradient(...)  // 同上四项
+   │       │       │               │       └─► (四个代价子函数 + ESDF 查询)
+   │       │       │               └─► (更新 best_finite_cost / best_finite_ctrl_pts)
+   │       │       │
+   │       │       └─► LbfgsBackend::monitorProgress(&context,...)  ×每轮 1 次
+   │       │               └─► (检查 invalid_evaluation / cancel_requested)
+   │       │
+   │       └─► assignInnerControlPoints()       // 最终 x 写回 working_ctrl_pts
+   │
+   ├─► computeCostAndGradient(context, 最优解, ..., print="Final")  // 仅打印明细
+   │
+   └─► 返回 OptimizeResult { success, used_fallback, ctrl_pts, failure_reason }
+
+*/
 OptimizeResult LbfgsBackend::optimize(const OptimizeRequest & request) const
 {
     OptimizeResult result;
@@ -505,6 +542,7 @@ double LbfgsBackend::computeSmoothnessCost(
             J = a²   a = P(i+2) - 2P(i+1) + P(i)
             E.g. ∂J / ∂P(i+1) = ∂J/∂a * ∂a/∂P(i+1) = 2a * (-2) = -4a
         */
+       // 注意，此处是累加赋值而不是覆盖赋值；因为一个点的梯度受周围好几个点的影响
         Eigen::Vector2d temp = 2.0 * acc;       // acc ^ 2 求导得到 2 * acc
         grad.col(i)     += temp;
         grad.col(i + 1) += -2.0 * temp;
@@ -530,8 +568,9 @@ double LbfgsBackend::computeDistanceCost(
 
     const int control_point_count = static_cast<int>(ctrl_pts.cols());
 
+    // 每 4 个控制点生成一个曲线点，那么 k 个控制点可以生成 k-3 个曲线点
     const int span_count = control_point_count - context.degree;
-    const int samples_per_span = context.config.optimization_samples_per_span; 
+    const int samples_per_span = context.config.optimization_samples_per_span;              // 每段样条的采样个数
 
     if (span_count <= 0 || samples_per_span <= 0)
     {
@@ -582,7 +621,8 @@ double LbfgsBackend::computeDistanceCost(
 
             cost += sample_weight * error * error;
 
-            // ∂J/∂C = -2 * (safe_distance - distance) * ∇distance
+            // J是总代价，p是曲线点，d是距离，则距离对位置求导，也就是∂d/∂p，就得到梯度（distance_gradient）
+            // 那么此处就是要求 ∂J/∂p = ∂J/∂d * ∂d/∂p = -2 * error * distance_gradient
             const Eigen::Vector2d cost_gradient_at_curve_point = -2.0 * sample_weight * error * distance_gradient;
 
             // 通过链式法则，把曲线点梯度分给四个控制点。
@@ -633,7 +673,7 @@ double LbfgsBackend::computeReferenceCost(
 
             const Eigen::Vector2d error = current_point - reference_point;
             const double distance = error.norm();
-            const double excess = distance - context.config.reference_tolerance;
+            const double excess = distance - context.config.reference_tolerance;        // 过量的部分
 
             if (excess <= 0.0 || distance <= 1.0e-8)
             {
@@ -642,8 +682,10 @@ double LbfgsBackend::computeReferenceCost(
 
             cost += sample_weight * excess * excess;
 
-            // weight * error^2 = weight * (P - P(ref))^2
-            // 上式对 P 求导得到 2 * weight * (P - P(ref))
+            // J是总代价函数，那么J=w⋅excess^2，excess=|error|−tolerance，error=p−pref
+            // 现在要求 ∂J/∂p，则 ∂J/∂p = ∂J/∂excess * ∂excess/∂error * ∂error/∂p
+            // 其中，∂excess/∂error 部分由于error的正负不确定，因此用单位向量表示，也就是 error/|error|
+            // 则 ∂J/∂p = 2 * sample_weight * excess * error/|error| * 1 = 2.0 * sample_weight * excess / distance * error
             const Eigen::Vector2d point_gradient = 2.0 * sample_weight * excess / distance * error;
 
             for (int local = 0; local < 4; ++local)
@@ -688,7 +730,7 @@ double LbfgsBackend::computeCurvatureCost(
             const CubicBasis basis = evaluateCubicBasis(s);
 
             // tangent = P′(s)，记作 t=(tx,ty)^T
-            const Eigen::Vector2d tangent = local_ctrl_pts * basis.first_derivative;        // 速度
+            const Eigen::Vector2d tangent = local_ctrl_pts * basis.first_derivative;        // 速度（切向量）
             // second_derivative =P′′(s)，记作 d=(dx,dy)^T
             const Eigen::Vector2d second_derivative = local_ctrl_pts * basis.second_derivative;     // 加速度
 
@@ -720,24 +762,24 @@ double LbfgsBackend::computeCurvatureCost(
 
             cost += sample_weight * excess * excess;        // 代价计算
 
-            // 下边计算梯度，目标是 ∂J/∂C
+            // 下边计算梯度，目标是 ∂J/∂C（C是控制点）
             /*
-            链条是：
-            J → κ → {
-                    t(=P′) 
-                    d(=P′′) → C
-                    }
+            对每个采样点，代价为： J=w⋅excess^2,excess=∣κ∣−κmax
+            κ是曲率，公式见上边注释
+            则 ∂J/∂C = ∂J/∂κ * ∂κ/∂d * ∂d/∂C
+            或 ∂J/∂C = ∂J/∂κ * ∂κ/∂t * ∂t/∂C
             */
-           // 第一步：∂J/∂κ = 2w⋅excess⋅∂∣κ∣/∂κ ​= 2w⋅excess⋅sign(κ)
+
+           // ∂J/∂κ = 2w⋅excess⋅∂∣κ∣/∂κ ​= 2w⋅excess⋅sign(κ)
             const double curvature_sign = curvature >= 0.0 ? 1.0 : -1.0;        // ∂∣κ∣/∂κ
             const double cost_derivative_curvature = 2.0 * sample_weight * excess * curvature_sign;
 
-            // 第二步：∂κ/∂t（见 /image 下截图）
+            // ∂κ/∂t（见 /image 下截图）
             const Eigen::Vector2d curvature_derivative_tangent =
                 Eigen::Vector2d(second_derivative.y(), -second_derivative.x()) *inverse_speed_cubed
                  - 3.0 * cross * tangent * inverse_speed_fifth;
 
-            // 第 3 步：∂κ/∂d（见 /image 下截图）
+            // ∂κ/∂d（见 /image 下截图）
             const Eigen::Vector2d curvature_derivative_second =
                 Eigen::Vector2d(-tangent.y(), tangent.x()) * inverse_speed_cubed;
 
@@ -752,6 +794,7 @@ double LbfgsBackend::computeCurvatureCost(
             {
                 // ∂t/∂C = basis.first_derivative
                 // ∂d/∂C = basis.second_derivative
+                // t 和 d 都是控制点的线性组合，汇总两段梯度，按照权重分回控制点
                 grad.col(span + local) +=
                     basis.first_derivative(local) * cost_derivative_tangent
                     + basis.second_derivative(local) * cost_derivative_second;

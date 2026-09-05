@@ -101,6 +101,20 @@ E.g. 3次 B 样条中一个点由4个控制点决定，
 ​​​
 */
 // 使用上边的公式根据轨迹点/起始终点速度/起始终点加速度构建线性方程，利用最小二乘法计算控制点
+/*
+设输入点数量为 K：
+    控制点数量是 K+2
+    三次 B 样条有效段数是 ((K+2)-3 = K-1
+    K 个输入点刚好对应这 K-1 段的 K 个边界
+    再加起点、终点两条速度约束，正好得到 K+2 条约束，对应 K+2 个控制点
+*/
+/*
+为什么选择 s=0：
+首先，K 个中点需要对应 K 个样条段，当前 k+2 个控制点只能生成 k-1 个样条段，因此需要 k+3 个控制点，
+    然后现在约束是 K 个位置约束+2 个速度约束=K+2，也就是说还需要加上一个约束才是 k+3。
+然后就是约束的速度语义对不上，现在的速度约束是起点/终点的速度，而非每一段中点的速度。
+最后是改变s可能导致解出的控制点振荡，详细解释见 image/why_s=0.png、why_s=0_1.png、why_s=0_1.png
+*/
 bool UniformBspline::parameterizeToBspline(
     const double & ts,
     const std::vector<Eigen::Vector2d> & point_set,
@@ -135,7 +149,8 @@ bool UniformBspline::parameterizeToBspline(
 
     // K + 2：控制点数量
     // K + 4：约束数量，K 个位置约束，加上起点终点各两个速度约束、加速度约束
-    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(K + 4, K + 2);
+    // Eigen::MatrixXd A = Eigen::MatrixXd::Zero(K + 4, K + 2);
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(K + 2, K + 2);
 
     for (int i = 0; i < K; ++i)
     {
@@ -143,7 +158,7 @@ bool UniformBspline::parameterizeToBspline(
         A.block(i, i, 1, 3) = (1.0 / 6.0) * prow.transpose();
     }
 
-    // (P(i-1) - P(i+1)) / 2*ts = v     （一阶差分）
+    // (P(i+1) - P(i-1)) / 2*ts = v     （一阶差分）
     A.block(K, 0, 1, 3) = (1.0 / (2.0 * ts)) * vrow.transpose();            // 起点速度约束
     A.block(K + 1, K - 1, 1, 3) = (1.0 / (2.0 * ts)) * vrow.transpose();             // 终点速度约束
 
@@ -151,7 +166,9 @@ bool UniformBspline::parameterizeToBspline(
     // A.block(K + 2, 0, 1, 3) = (1.0 / (ts * ts)) * arow.transpose();         // 起点加速度约束
     // A.block(K + 3, K - 1, 1, 3) = (1.0 / (ts * ts)) * arow.transpose();         // 终点加速度约束
 
-    Eigen::VectorXd bx(K + 4), by(K + 4);       // x, y 坐标单独算
+    // Eigen::VectorXd bx(K + 4), by(K + 4);       // x, y 坐标单独算
+    Eigen::VectorXd bx = Eigen::VectorXd::Zero(K + 2);
+    Eigen::VectorXd by = Eigen::VectorXd::Zero(K + 2);
 
     for (int i = 0; i < K; ++i)
     {
@@ -240,7 +257,7 @@ Eigen::VectorXd UniformBspline::evaluateDeBoor(const double & u)
     }
 
     std::vector<Eigen::VectorXd> d;
-    d.reserve(p_ + 1);
+    d.reserve(p_ + 1);                  // d[0]=P0、d[1]=P1……
 
     // 先把当前相关的 p+1 个控制点取出来
     for (int i = 0; i <= p_; ++i)
@@ -257,7 +274,7 @@ Eigen::VectorXd UniformBspline::evaluateDeBoor(const double & u)
             double alpha = 0.0;
             if (std::abs(denom) > 1e-12)
             {
-                alpha = (ub - u_(i + k - p_)) / denom;
+                alpha = (ub - u_(i + k - p_)) / denom;      // alpha 是参数 u 在这个窗口内的相对位置（0 = 取左点，1 = 取右点），就是上边的"s"
             }
 
             d[i] = (1.0 - alpha) * d[i - 1] + alpha * d[i];
@@ -423,8 +440,8 @@ std::vector<Eigen::Vector2d> UniformBspline::resamplePolylineByArcLength(
 
     if (output.empty() || (output.back() - cleaned.back()).norm() > 1e-8)
     {
-        output.push_back(cleaned.back());
-    }
+        output.push_back(cleaned.back());           // 推入最后一个点
+    }   
 
     return output;
 }

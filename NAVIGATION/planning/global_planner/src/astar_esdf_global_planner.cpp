@@ -236,7 +236,7 @@ namespace global_planner
         std::unique_lock<std::mutex> planning_lock(planning_mutex_, std::try_to_lock);
         if (!planning_lock.owns_lock())
         {
-            // 上一次全局规划还没有结束
+            // 没有拿到锁，代表上一次全局规划还没有结束
             return;
         }
 
@@ -279,15 +279,12 @@ namespace global_planner
 
         if (!has_odom)                 // 没有 odom
         {
-            if (!if_silence_)
-            {
-                RCLCPP_INFO_THROTTLE(
-                    node->get_logger(),
-                    *node->get_clock(),
-                    1500,
-                    "No odom yet, skip planning."
-                );
-            }
+            RCLCPP_WARN_THROTTLE(
+                node->get_logger(),
+                *node->get_clock(),
+                1500,
+                "No odom yet, skip planning."
+            );
             return;
         }
 
@@ -301,22 +298,19 @@ namespace global_planner
         const double distance_to_goal = std::hypot(robot_x - goal->x, robot_y - goal->y);
         if (distance_to_goal < min_dist_to_plan_)
         {
-            if (!if_silence_)
-            {
-                RCLCPP_INFO_THROTTLE(
-                    node->get_logger(),
-                    *node->get_clock(),
-                    1500,
-                    "Goal is already close enough, skip planning."
-                );
-            }
+            RCLCPP_WARN_THROTTLE(
+                node->get_logger(),
+                *node->get_clock(),
+                1500,
+                "Goal is already close enough, skip planning."
+            );
             return;
         }
 
         // ---------------- 解析栅格地图元数据，并与 ESDF 地图元数据比对 ----------------
         if (!occupancy_map_msg)
         {
-            RCLCPP_INFO_THROTTLE(
+            RCLCPP_WARN_THROTTLE(
                 node->get_logger(), *node->get_clock(), 1500,
                 "No occupancy map yet, skip planning.");
             return;
@@ -420,7 +414,7 @@ namespace global_planner
             );
         }
 
-        auto cellBlocked = [&](int gx, int gy) -> bool
+        auto cellBlocked = [&](int gx, int gy) -> bool                  // 判断一个格子是否是障碍物
         {
             const int cost = grid_cost_[gy][gx];
             if (cost < 0)
@@ -612,7 +606,7 @@ namespace global_planner
         return cell_cost >= obstacle_threshold;
     }
 
-    // 计算总代价权重
+    // 计算占据栅格代价权重
     inline double getTraversalWeight(
         int cell_cost,
         bool treat_unknown_as_obstacle,
@@ -682,6 +676,9 @@ namespace global_planner
             open_set.pop();
 
             const int cur_idx = toIndex(current.x, current.y, cols);
+            // 但明明每次都 pop，为什么会出现重复 pop 的情况？
+            // 原因在于这里的“懒惰删除”，也就是每次更新 neighbor 时只会将新的推入、并不会将（该格子）之前旧的记录删除
+            // 这就导致了优先队列中，对于同一个格子，可能会有多个“副本”存在
             if (closed[cur_idx])        // 到过这个格子
                 continue;
             closed[cur_idx] = 1;
@@ -745,6 +742,7 @@ namespace global_planner
                 const double move_cost =
                     (d.first != 0 && d.second != 0) ? std::sqrt(2.0) : 1.0;
 
+                // 栅格代价
                 const double base_weight = getTraversalWeight(
                     neighbor_cost,
                     treat_unknown_as_obstacle,
@@ -754,10 +752,11 @@ namespace global_planner
                 double clearance_penalty = 0.0;
                 if (use_esdf_soft_cost_)
                 {
+                    // esdf 代价
                     clearance_penalty = compute_esdf_clearance_penalty(static_cast<double>(esdf_dist));          // ESDF 代价
                 }
 
-                // 下一步代价的总权重
+                // 一个格子的总代价
                 const double step_weight = base_weight + esdf_cost_scale_ * clearance_penalty;
 
                 // 邻居格子的总代价
@@ -777,7 +776,7 @@ namespace global_planner
             }
         }
 
-        return {};
+        return {};          // 候选队列耗尽仍未找到终点，不可达
     }
 
     double AstarEsdfGlobalPlanning::compute_esdf_clearance_penalty(double esdf_dist) const
@@ -816,6 +815,7 @@ namespace global_planner
 
         // 等待正在进行的 planningTimerCallback 退出
         {
+            // 阻塞式获取锁
             std::lock_guard<std::mutex> lock(planning_mutex_);
         }
 
