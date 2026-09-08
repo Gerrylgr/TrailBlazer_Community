@@ -62,8 +62,10 @@ namespace local_planner::mppi_core
                 last_index - search_begin);
         const std::size_t closest = findClosestIndex(robot_pose, search_begin, search_end);
 
-        progress_index_ = std::max(progress_index_, closest);
+        progress_index_ = std::max(progress_index_, closest);               // 路径单调向前
         result.progress_index = progress_index_;
+
+        // ----------------- 判断是否到达终点 -----------------
 
         const auto & goal = global_path_.poses.back().pose.position;
 
@@ -81,6 +83,7 @@ namespace local_planner::mppi_core
             return result;
         }
 
+        // 继续构建局部路径
         double accumulated_distance = 0.0;
         const std::size_t local_begin = std::min(progress_index_, last_index - 1);
         for (std::size_t i = local_begin; i < global_path_.poses.size(); ++i)

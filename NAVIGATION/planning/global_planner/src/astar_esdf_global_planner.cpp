@@ -652,7 +652,7 @@ namespace global_planner
         const int total_size = rows * cols;
         const double INF = std::numeric_limits<double>::infinity();
 
-        std::vector<double> g_score(total_size, INF);       // 存储起点到这个格子的实际代价
+        std::vector<double> g_score(total_size, INF);       // 存储起点到这个格子的实际代价；初始化为无穷大
         std::vector<int> parent(total_size, -1);        // 回溯用；全部初始化为-1
         std::vector<uint8_t> closed(total_size, 0);     // 到过的格子；0表示没有去过
 
@@ -762,6 +762,7 @@ namespace global_planner
                 // 邻居格子的总代价
                 const double tentative_g = g_score[cur_idx] + move_cost * step_weight;
 
+                // 邻居格子代价比之前更小时，重新计算 f=g+h 并推入优先队列
                 if (tentative_g < g_score[neighbor_idx])
                 {
                     g_score[neighbor_idx] = tentative_g;

@@ -44,7 +44,7 @@ namespace local_planner::mppi_core
             throw std::runtime_error("NoiseGenerator has not been initialized.");
         }
 
-        // noise_vx_(i, j) 被加到第 i 条轨迹的第 j 个时间步的线速度上
+        // noise_vx_(i, j) 会被加到第 i 条轨迹的第 j 个时间步的线速度上
         noise_vx_ = xt::random::randn<float>(
             {
                 settings_.batch_size,
@@ -53,7 +53,7 @@ namespace local_planner::mppi_core
             0.0f,                   // 噪声均值
             settings_.vx_std);
 
-        // noise_wz_(i, j) 被加到角速度上
+        // noise_wz_(i, j) 会被加到角速度上
         noise_wz_ = xt::random::randn<float>(
             {
                 settings_.batch_size,
@@ -66,6 +66,7 @@ namespace local_planner::mppi_core
         const float vx_alpha = 0.80f;
         const float wz_alpha = 0.90f;
 
+        // 注意，这里使用根号下 1-alpha^2 是为了保证滤波后的噪声总方差大小不变（见 image/vatiance_explain.png） 
         const float vx_scale = std::sqrt(1.0f - vx_alpha * vx_alpha);       // 0.6
         const float wz_scale = std::sqrt(1.0f - wz_alpha * wz_alpha);       // 0.44
 

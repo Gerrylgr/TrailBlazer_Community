@@ -70,6 +70,7 @@ float PathTrackingCritic::normalizedAngle(float angle)
     return std::atan2(std::sin(angle), std::cos(angle));
 }
 
+// 求出路径上指定线段的 yaw
 float PathTrackingCritic::segmentYaw(const TensorPath & path, std::size_t segment)
 {
     const std::size_t last_segment = path.x.size() - 2;
@@ -85,6 +86,7 @@ float PathTrackingCritic::segmentYaw(const TensorPath & path, std::size_t segmen
     return std::atan2(dy, dx);
 }
 
+// 从 first_segment 向后搜索，找到横向距离最近的投影，返回 projection 对象
 PathTrackingCritic::Projection PathTrackingCritic::findForwardProjection(
     const TensorPath & path,
     float x,
@@ -116,19 +118,33 @@ PathTrackingCritic::Projection PathTrackingCritic::findForwardProjection(
             continue;
         }
 
+        /*
+        假设线段起点为A，终点为B，目标点为P
+        则此处在求点P在线段上的投影点在线段上的归一化位置比例
+        推导：
+            AB⋅AP = （dx, dy）⋅ (x - start_x, y - start_y) = (x - start_x) * dx + (y - start_y) * dy) 
+                  = |AB|⋅|AP|⋅cosθ
+            也就是 |AP|⋅cosθ = AB⋅AP / |AB|
+            而要求的 ratio = |AP|⋅cosθ / |AB|
+            代入上边式子得到 ratio = AB⋅AP / |AB|^2
+        */
         const float ratio = std::clamp(
             ((x - start_x) * dx + (y - start_y) * dy) / length_squared,
             0.0f,
             1.0f);
+        // 投影点坐标
         const float projection_x = start_x + ratio * dx;
         const float projection_y = start_y + ratio * dy;
         const float error_x = x - projection_x;
         const float error_y = y - projection_y;
+        // 点到直线距离（横向距离）
         const float distance_squared = error_x * error_x + error_y * error_y;
 
         if (distance_squared < best.distance_squared)
         {
             const float inv_length = 1.0f / std::sqrt(length_squared);
+            // (tangent_x, tangent_y) 表示沿线段方向的单位向量
+            // 将这个向量向左旋转 90 度，得到(-tangent_y, tangent_x)，就代表和线段垂直、方向向左的单位向量
             const float tangent_x = dx * inv_length;
             const float tangent_y = dy * inv_length;
 
@@ -136,33 +152,32 @@ PathTrackingCritic::Projection PathTrackingCritic::findForwardProjection(
             best.distance_squared = distance_squared;
             best.tangent_yaw = std::atan2(dy, dx);
 
-            // 左法向量为 (-tangent_y, tangent_x)。与投影误差做点积，
-            // 正值表示轨迹点位于路径前进方向左侧。
-            best.signed_lateral =
-                -error_x * tangent_y + error_y * tangent_x;
+            // 左法向量为 (-tangent_y, tangent_x)。与投影误差做点积，为正表示点在左侧，反之在右侧，绝对值表示路径长度
+            best.signed_lateral = -error_x * tangent_y + error_y * tangent_x;
         }
     }
 
     return best;
 }
 
+// 在指定的折线附近计算曲率
 float PathTrackingCritic::estimateCurvature(
     const TensorPath & path,
     std::size_t segment) const
 {
     const std::size_t last_segment = path.x.size() - 2;
-    const std::size_t first =
+    const std::size_t first =                   // 起点，向回找 curvature_lookahead 步
         segment > settings_.curvature_lookahead ?
         segment - settings_.curvature_lookahead : 0;
-    const std::size_t last = std::min(
+    const std::size_t last = std::min(          // 终点，向后找 curvature_lookahead 步
         last_segment,
         segment + settings_.curvature_lookahead);
 
     float arc_length = 0.0f;
     for (std::size_t i = first; i <= last; ++i)
     {
-        arc_length += std::hypot(
-            path.x(i + 1) - path.x(i),
+        arc_length += std::hypot(               // 累积弧长
+            path.x(i + 1) - path.x(i),      
             path.y(i + 1) - path.y(i));
     }
 
@@ -205,6 +220,7 @@ void PathTrackingCritic::score(CriticData & data) const
     std::vector<float> path_curvature(segment_count, 0.0f);
     for (std::size_t segment = 0; segment < segment_count; ++segment)
     {
+        // 每段折线附近的曲率
         path_curvature[segment] = estimateCurvature(data.path, segment);
     }
 
@@ -257,6 +273,10 @@ void PathTrackingCritic::score(CriticData & data) const
             // 路径之前收油，而不是以恒定最大速度穿过路径后再反向纠偏。
            
             // 这里曲率减益系数计算见 image/cur_err_tuning.png。
+            // 已知 ω=v⋅κ，代入减速公式 v = V / (1 + G·κ)，得 ω=V⋅κ​/（1+G·κ），
+            // κ​→ ∞ 时，约等于 V/G，也就是不论曲率多大都不会超过 V/G
+            // 向心加速度计算公式：a=v^2·κ = V^2·κ​/(1+G·κ)^2
+            // 该式子的极值点在 κ=1/G，代入得到此时 a=V^2/4G
             const float curve_speed = settings_.max_linear_speed /
                         (1.0f + settings_.curvature_gain * curvature_mag);
             
@@ -303,6 +323,7 @@ void PathTrackingCritic::score(CriticData & data) const
                     settings_.convergence_gain * signed_lateral,
                     std::abs(vx) + settings_.softening_speed);
 
+                // 机器人在路径左侧（signed_lateral > 0）→ convergence_angle > 0；机器人在路径右侧（signed_lateral < 0）→ convergence_angle < 0
                 convergence_angle = std::clamp(
                     convergence_angle,
                     -settings_.max_convergence_angle,
@@ -322,7 +343,7 @@ void PathTrackingCritic::score(CriticData & data) const
             // ---------- 角速度跟踪 + 近路径门控 ----------
             // vx * curvature 是曲率前馈；航向反馈项允许机器人执行必要纠偏，
             // 并在 heading_tracking_error 接近 0 时让参考角速度平滑回落。
-            const float reference_wz =
+            const float reference_wz =                      // 计算目标角速度
                 vx * curvature - settings_.yaw_rate_heading_gain * heading_tracking_error;
             const float yaw_rate_error = wz - reference_wz;                 // 多余的角速度
 

@@ -87,12 +87,12 @@ namespace local_planner
          
             // ----------------------------- helpers -----------------------------
             void publish_stop();
-            bool odomPoseInFrame(
+            bool odomPoseInFrame(                       // 将 odom 中的位姿转换到目标坐标系下，结果写入 pose 中
                 const nav_msgs::msg::Odometry & odom,
                 const std::string & target_frame,
                 mppi_core::Pose2D & pose) const;
-            mppi_core::Twist2D odomToTwist(const nav_msgs::msg::Odometry & odom) const;
-            void compensateStateLatency(
+            mppi_core::Twist2D odomToTwist(const nav_msgs::msg::Odometry & odom) const;     // 返回机器人的速度
+            void compensateStateLatency(                    // 根据延迟时间、机器人的加速度限幅估计此时机器人的真实 pose、speed
                 mppi_core::Pose2D & pose,
                 mppi_core::Twist2D & speed,
                 const mppi_core::ControlCommand & last_command,
@@ -181,7 +181,7 @@ namespace local_planner
 
             mppi_core::ControlCommand last_command_;
             bool has_last_command_{false};
-            double planning_duration_ema_sec_{0.0};
+            double planning_duration_ema_sec_{0.0};         // 对规划一次需要多长时间的平滑估计
 
             std::mutex planning_mutex_; 
     };

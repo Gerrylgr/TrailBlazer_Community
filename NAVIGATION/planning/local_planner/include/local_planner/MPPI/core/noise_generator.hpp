@@ -1,3 +1,11 @@
+/*
+*   Noise-Generator
+*   usage in optimizer.cpp:
+*       noise_generator_.reset() （Optimizer::reset() 中）
+*       noise_generator_.initialize(settings_);     （构造函数中）
+*       noise_generator_.generate();    （Optimizer::generateNoisedTrajectories() 中）
+*       noise_generator_.apply(state_, control_sequence_);      （Optimizer::generateNoisedTrajectories() 中）
+*/
 #ifndef LOCAL_PLANNER__MPPI__CORE__NOISE_GENERATOR_HPP_
 #define LOCAL_PLANNER__MPPI__CORE__NOISE_GENERATOR_HPP_
 

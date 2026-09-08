@@ -488,16 +488,16 @@ namespace local_planner
         // --------------------- 检查 odom/esdf 是否超时 ---------------------
         const auto now = std::chrono::steady_clock::now();
 
-        if (std::chrono::duration<double>(now - last_odom_time).count() > odom_timeout_sec_)
-        {
-            RCLCPP_WARN(
-                node->get_logger(),
-                "Haven't received odom for %.3fs, publishing stop command",
-                odom_timeout_sec_
-            );
-            publish_stop();
-            return;
-        }
+        // if (std::chrono::duration<double>(now - last_odom_time).count() > odom_timeout_sec_)
+        // {
+        //     RCLCPP_WARN(
+        //         node->get_logger(),
+        //         "Haven't received odom for %.3fs, publishing stop command",
+        //         odom_timeout_sec_
+        //     );
+        //     publish_stop();
+        //     return;
+        // }
 
         if (!has_esdf || std::chrono::duration<double>(now - last_esdf_time).count() > esdf_timeout_sec_)
         {
@@ -510,28 +510,32 @@ namespace local_planner
             return;
         }
 
-        // optimizer、全局路径和预测轨迹必须使用同一个 frame。
+        // 必须使用同一个 frame
         const std::string local_path_frame = path_manager_->frameId();
-        mppi_core::Pose2D robot_pose;
+        mppi_core::Pose2D robot_pose;                                       // 机器人位姿
         if (!odomPoseInFrame(odom, local_path_frame, robot_pose))
         {
             publish_stop();
             return;
         }
 
-        mppi_core::Twist2D robot_speed = odomToTwist(odom);
+        mppi_core::Twist2D robot_speed = odomToTwist(odom);                 // 机器人速度
 
-        const double arrival_age_sec =
-            std::chrono::duration<double>(now - last_odom_time).count();
-        double message_age_sec = arrival_age_sec;               // 现在距离上个 odom 的时间差值
+        // last_odom_time 表示回调中接收到 odom 的时刻
+        const double arrival_age_sec = std::chrono::duration<double>(now - last_odom_time).count();
+        double message_age_sec = arrival_age_sec;               
 
+        // odom_stamp 是这个 odom 消息产生的时刻
+        // 此处使用两种方式计算延迟的原因是 arrival_age_sec 是系统时间、不依赖 ROS 时间，但是会低估延迟
+        // stamped_age_sec 是精确估计的延迟，但是依赖 ROS 时间（use_sim_time 等，配置错误就可能错乱）
+        // 二者同时使用是安全保底的做法
         const rclcpp::Time odom_stamp(odom.header.stamp, node->get_clock()->get_clock_type());
         if (odom_stamp.nanoseconds() > 0)
         {
             const double stamped_age_sec = (node->now() - odom_stamp).seconds();
             if (std::isfinite(stamped_age_sec) && stamped_age_sec >= 0.0)
             {
-                message_age_sec = std::max(message_age_sec, stamped_age_sec);
+                message_age_sec = std::max(message_age_sec, stamped_age_sec);       // 现在距离上个 odom 的时间差值
             }
         }
 
@@ -611,7 +615,7 @@ namespace local_planner
                 0.8 * planning_duration_ema_sec_ + 0.2 * planning_duration_sec;     // 历史用时*0.8+本次用时*0.2
         }
 
-        if (planning_duration_sec > 0.8 * control_period_sec_)
+        if (planning_duration_sec > 0.8 * control_period_sec_)          // 规划用时大于控制周期
         {
             RCLCPP_WARN_THROTTLE(
                 node->get_logger(),

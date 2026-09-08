@@ -1,6 +1,6 @@
 /*
 *   轨迹追踪惩罚计算
-*   优化目标：让预测轨迹的终点 尽可能接近路径上的前瞻点
+*   优化目标：让预测轨迹的终点 尽可能接近路径上的前瞻点（鼓励沿着轨迹向前运动，而不跑偏）
 */
 #include "local_planner/MPPI/critics/path_follow_critic.hpp"
 
@@ -55,12 +55,15 @@ namespace local_planner::mppi_core
         const auto update_furthest =
             [](std::optional<std::size_t> & value, std::size_t index)
             {
+                // value 没有值就赋值 index，否则赋值 std::max(*value, index)
                 value = value ? std::max(*value, index) : index;
             };
 
+        // 遍历所有候选轨迹
         for (std::size_t batch = 0; batch < batch_size; ++batch)
         {
             // 要评估的候选轨迹点
+            // 看所有获选轨迹的末端
             const float x = data.trajectories.x(batch, final_step);
             const float y = data.trajectories.y(batch, final_step);
 
@@ -81,6 +84,7 @@ namespace local_planner::mppi_core
 
                 if (distance_sq < best_distance_sq)
                 {
+                    // 记住最近的索引以及最近的距离
                     best_distance_sq = distance_sq;
                     closest_index = i;
                 }
@@ -139,13 +143,14 @@ namespace local_planner::mppi_core
         const std::size_t target_index =
             *furthest +
             std::min(
-                settings_.offset_from_furthest,
-                last_path_index - *furthest);
+                settings_.offset_from_furthest,         // 将前视目标点再向前移几个位置
+                last_path_index - *furthest);           // 距离路径末端还剩几个点（上限）
 
         const float target_x = data.path.x(target_index);
         const float target_y = data.path.y(target_index);
         const std::size_t final_step = time_steps - 1;
 
+        // 遍历所有轨迹的最后一个点，计算 cost
         for (std::size_t batch = 0; batch < batch_size; ++batch)
         {
             // 预测路径的点

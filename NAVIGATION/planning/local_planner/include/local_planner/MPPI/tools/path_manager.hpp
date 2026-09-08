@@ -3,8 +3,7 @@
 *   usage in mppi_planner.cpp:
 *       path_manager_->clear()
 *       path_manager_->setPath(*msg) (in path_callback)
-*       path_manager_->isGoalReached(robot_pose) (in timer_callback)
-*       auto local_path = path_manager_->buildLocalPath(robot_pose) (in timer_callback)
+*       path_manager_->updateAndBuildLocalPath(robot_pose) (in timer_callback)
 */
 #ifndef LOCAL_PLANNER__MPPI__TOOLS__PATH_MANAGER_HPP_
 #define LOCAL_PLANNER__MPPI__TOOLS__PATH_MANAGER_HPP_
@@ -30,7 +29,7 @@ namespace local_planner::mppi_core
         double path_resolution{0.10};
         double goal_tolerance{0.15};
 
-        std::size_t nearest_search_window{100};
+        std::size_t nearest_search_window{100};         // 寻找 closest index 时最多向前搜索的节点数
     };
 
     struct LocalPathResult

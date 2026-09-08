@@ -253,7 +253,7 @@ void Optimizer::integrateCandidateTrajectories()
         float predicted_vx = state_.speed.vx;
         float predicted_wz = state_.speed.wz;
 
-        // 遍历所有时间步，
+        // 遍历所有时间步，预测速度/位置
         for (std::size_t t = 0; t < settings_.time_steps; ++t)
         {
             // 预测速度更新（更新幅度不能超过机器人极限）

@@ -394,6 +394,8 @@ local_planner_server:
         esdf:
           enabled: true
           trajectory_step: 2
+          repulsion_weight: 7.0
+          safe_distance: 0.4
 
 lifecycle_manager_trailblazer:
   ros__parameters:
