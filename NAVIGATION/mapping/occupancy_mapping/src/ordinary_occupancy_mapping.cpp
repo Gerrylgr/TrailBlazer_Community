@@ -1121,7 +1121,7 @@ namespace occupancy_mapping
             if (!geometry_.worldToMap(x, y, mx, my))
                 continue;
 
-            const size_t index = geometry_.toIndex(mx, my);
+            const size_t index = geometry_.toIndex(mx, my);             // 格子索引
             auto &cell = ground_cells_[static_cast<std::size_t>(index)];
 
             cell.observed = true;

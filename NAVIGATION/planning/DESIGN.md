@@ -265,16 +265,20 @@ $$
 \rho=\min_k J_k.
 $$
 
-在 temperature 为 $\lambda$ 时：
+在 temperature 为 $\lambda$ 时每个轨迹的权重：
 
 $$
 \tilde{w}_k
-=\exp\left(-\frac{J_k-\rho}{\lambda}\right),
+=\exp\left(-\frac{J_k-\rho}{\lambda}\right)
+$$
+
+获取归一化的权重：
+$$
 \qquad
 w_k=\frac{\tilde{w}_k}{\sum_j \tilde{w}_j}.
 $$
 
-当前实现直接对候选控制序列进行加权：
+使用权重对候选控制序列进行加权（可得到最终控制序列）：
 
 $$
 \mathbf{u}_t^{\mathrm{new}}
@@ -346,7 +350,7 @@ $$
 
 #### 3.5.4 基于 ESS 的自适应 Temperature
 
-归一化权重的有效样本数定义为：
+ESS是一项指标，代表当前 temperature 下有效样本数量，（归一化权重的有效样本数）其定义为：
 
 $$
 \mathrm{ESS}

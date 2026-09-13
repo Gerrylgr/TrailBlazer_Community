@@ -290,11 +290,11 @@ path_optimizer_server:
       reference_tolerance: 0.2
       lambda_curvature: 0.001
       max_curvature: 1.0
-      tangent_epsilon: 1e-4
+      tangent_epsilon: 0.0001
 
       max_iterations: 200
       if_lbfgs: true
-      g_epsilon: 1e-3
+      g_epsilon: 0.001
 
       fixed_boundary_control_points: 3
       optimization_samples_per_span: 3

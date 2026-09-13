@@ -130,7 +130,7 @@ namespace occupancy_mapping
 
             void resetFrameBuffers();                               // 重置所有单帧的临时变量
 
-            void processGroundCloud(const sensor_msgs::msg::PointCloud2 & msg);         // 处理一帧 ground points
+            void processGroundCloud(const sensor_msgs::msg::PointCloud2 & msg);         // 处理一帧 ground points（足够多的点落进格子就算是 free 的）
             void finalizeGroundCells(const std::vector<std::size_t> & updated_indices);
 
             void processNonGroundCloud(const sensor_msgs::msg::PointCloud2 & msg);              // 处理一帧 non-ground points
